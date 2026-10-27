@@ -1,0 +1,18 @@
+# One-click deploy on Render's free tier: Dashboard -> New -> Blueprint -> pick this repo.
+services:
+  - type: web
+    name: bonk-party
+    runtime: node
+    plan: free
+    region: singapore # closest free region to India; change to oregon / frankfurt / etc. if your friends are elsewhere
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      # Optional: permanent Hall of Fame. See README -> "Supabase (optional)".
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false

@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Bonk Party</title>
+  <meta name="description" content="Chaotic party mini-games for 2–10 friends. Dash, bonk, laugh. Free, in your browser.">
+  <meta name="theme-color" content="#170f33">
+  <meta property="og:title" content="Bonk Party">
+  <meta property="og:description" content="Join my room and get bonked. 6 chaotic mini-games for 2–10 friends.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💥</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<!-- ============================== HOME ============================== -->
+<main id="home" class="screen">
+  <canvas id="homeBg" aria-hidden="true"></canvas>
+  <div class="home-wrap">
+    <header class="logo">
+      <h1><span class="l-bonk">BONK</span><span class="l-party">PARTY</span></h1>
+      <p>Chaotic mini-games for 2–10 friends. One button. Zero skill required. Mostly.</p>
+    </header>
+
+    <div class="home-grid">
+      <section class="card profile-card" aria-labelledby="blobTitle">
+        <h2 id="blobTitle">Your blob</h2>
+        <div class="preview-row">
+          <canvas id="preview" width="150" height="150" aria-label="Your blob preview"></canvas>
+          <div class="name-field">
+            <label for="nameInput">Name</label>
+            <div class="name-row">
+              <input id="nameInput" maxlength="14" autocomplete="off" spellcheck="false" placeholder="Your name">
+              <button id="randName" class="icon-btn light" type="button" title="Random name" aria-label="Random name">🎲</button>
+            </div>
+          </div>
+        </div>
+        <div class="picker-label">Color</div>
+        <div id="colorPicker" class="swatches" role="radiogroup" aria-label="Color"></div>
+        <div class="picker-label">Hat</div>
+        <div id="hatPicker" class="hats" role="radiogroup" aria-label="Hat"></div>
+      </section>
+
+      <section class="card play-card">
+        <button id="createBtn" class="btn btn-big btn-primary" type="button">Create a room</button>
+        <div class="or"><span>or join your friends</span></div>
+        <form id="joinForm" class="join-row" autocomplete="off">
+          <input id="codeInput" placeholder="CODE" maxlength="4" spellcheck="false" aria-label="Room code" autocapitalize="characters">
+          <button class="btn btn-secondary" type="submit">Join</button>
+        </form>
+        <p id="homeMsg" class="home-msg" role="status" aria-live="polite"></p>
+        <h3 class="mini-title">The games</h3>
+        <ul id="gamesPreview" class="games-preview"></ul>
+      </section>
+
+      <section class="card fame-card" aria-labelledby="fameTitle">
+        <h2 id="fameTitle">🏆 Hall of Fame</h2>
+        <ol id="fameList" class="fame"></ol>
+        <p class="fine">All-time wins on this server. Matches with 2+ humans count.</p>
+      </section>
+    </div>
+
+    <footer class="controls-hint">
+      <span><kbd>WASD</kbd> / <kbd>←↑↓→</kbd> move</span>
+      <span><kbd>Space</kbd> dash &amp; bonk</span>
+      <span><kbd>1</kbd>–<kbd>4</kbd> emotes</span>
+      <span>📱 left thumb moves, tap right side to dash</span>
+    </footer>
+  </div>
+</main>
+
+<!-- ============================== PLAY ============================== -->
+<main id="play" class="screen hidden">
+  <canvas id="cv"></canvas>
+
+  <div id="touch" class="touch hidden">
+    <div id="stickBase" class="stick-base"><div id="stickKnob" class="stick-knob"></div></div>
+    <button id="dashBtn" class="dash-btn" type="button">DASH</button>
+  </div>
+
+  <div id="hud" class="hud">
+    <div class="hud-left">
+      <button id="roomChip" class="chip chip-btn" type="button" title="Copy invite link">Room <b id="roomCode">----</b> <span aria-hidden="true">📋</span></button>
+      <span id="ping" class="chip ping" title="Ping"></span>
+    </div>
+    <div id="hudCenter" class="hud-center"></div>
+    <div class="hud-right">
+      <div id="emoteBar" class="emote-bar"></div>
+      <button id="muteBtn" class="icon-btn" type="button" aria-label="Toggle sound">🔊</button>
+      <button id="menuBtn" class="icon-btn" type="button" aria-label="Menu">☰</button>
+    </div>
+  </div>
+
+  <div id="feed" class="feed" aria-live="polite"></div>
+  <aside id="scoreboard" class="scoreboard hidden"></aside>
+  <div id="banner" class="banner hidden"></div>
+  <div id="rotateHint" class="rotate-hint hidden">🔄 Turn your phone sideways for a bigger arena</div>
+
+  <aside id="lobby" class="lobby hidden" aria-label="Lobby">
+    <button id="lobbyToggle" class="lobby-toggle" type="button" aria-expanded="true">
+      <span class="grip"></span><span id="lobbyToggleText">Lobby</span>
+    </button>
+    <div class="lobby-body">
+      <div class="lobby-head">
+        <div>
+          <div class="label">Room code</div>
+          <div id="lobbyCode" class="code">----</div>
+        </div>
+        <button id="copyLink" class="btn btn-small btn-secondary" type="button">🔗 Copy invite</button>
+      </div>
+
+      <div class="label-row">
+        <div class="label">Players <span id="pcount" class="pcount"></span></div>
+        <button id="addBot" class="btn btn-tiny" type="button" title="Bots fill in when you're short on friends">🤖 Add bot</button>
+      </div>
+      <ul id="plist" class="plist"></ul>
+
+      <details id="editLook" class="edit-look">
+        <summary>✏️ Change my name &amp; look</summary>
+        <div class="edit-body">
+          <div class="name-row">
+            <input id="lobbyName" maxlength="14" autocomplete="off" spellcheck="false" aria-label="Name">
+            <button id="lobbyNameSave" class="btn btn-small" type="button">Save</button>
+          </div>
+          <div id="lobbyColors" class="swatches small"></div>
+          <div id="lobbyHats" class="hats small"></div>
+        </div>
+      </details>
+
+      <div id="hostControls" class="host-controls">
+        <div class="label">Rounds</div>
+        <div id="roundsSeg" class="seg" role="radiogroup" aria-label="Rounds"></div>
+        <div class="label">Games in the mix</div>
+        <div id="gameChips" class="game-chips"></div>
+        <button id="startBtn" class="btn btn-big btn-primary" type="button">Start game ▶</button>
+        <p id="startHint" class="hint"></p>
+      </div>
+      <div id="guestInfo" class="guest-info"></div>
+    </div>
+  </aside>
+
+  <div id="overlay" class="overlay hidden"></div>
+  <canvas id="confetti" class="confetti" aria-hidden="true"></canvas>
+  <div id="splash" class="splash" aria-live="assertive"></div>
+
+  <div id="menu" class="menu hidden" role="dialog" aria-label="Menu">
+    <div class="menu-card card">
+      <h3>Menu</h3>
+      <button id="menuHow" class="btn btn-small" type="button">❓ How to play</button>
+      <button id="menuAbort" class="btn btn-small" type="button">⏹ End match (host)</button>
+      <button id="menuLeave" class="btn btn-small btn-danger" type="button">🚪 Leave room</button>
+      <button id="menuClose" class="btn btn-small btn-secondary" type="button">Close</button>
+    </div>
+  </div>
+</main>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script type="module" src="/js/main.js"></script>
+</body>
+</html>
