@@ -25,6 +25,7 @@ function h(tag, attrs = {}, ...kids) {
 
 const avatar = (p, size = 48, mood) => h('img', { src: avatarURL(p.color, p.hat, size, mood), alt: '', width: size, height: size });
 const MEDALS = ['🥇', '🥈', '🥉'];
+const BOT_LEVELS = [['easy', '😴 Easy'], ['medium', '🙂 Medium'], ['hard', '😈 Hard']];
 const isTouch = matchMedia('(pointer: coarse)').matches;
 const controlsText = isTouch ? 'Left thumb to move · tap the right side to DASH' : 'WASD / arrows to move · SPACE to dash';
 
@@ -129,11 +130,23 @@ function renderLobby() {
     const tags = [];
     if (p.id === S.myId) tags.push(h('span', { class: 'tag you', text: 'you' }));
     if (p.id === m.host) tags.push(h('span', { class: 'tag host', text: 'host' }));
-    if (p.bot) tags.push(h('span', { class: 'tag bot', text: 'bot' }));
+    if (p.bot) {
+      // Host taps to cycle Easy -> Medium -> Hard; guests just see the level.
+      const i = Math.max(0, BOT_LEVELS.findIndex((l) => l[0] === p.lvl));
+      const [, label] = BOT_LEVELS[i];
+      const next = BOT_LEVELS[(i + 1) % BOT_LEVELS.length][0];
+      tags.push(isHost
+        ? h('button', {
+          type: 'button', class: `lvl lvl-${BOT_LEVELS[i][0]}`, text: label,
+          title: `${p.name}'s difficulty. Tap to change`, 'aria-label': `${p.name} difficulty ${label}. Tap to change`,
+          onclick: () => { sfx.click(); act.send({ t: 'botlevel', id: p.id, level: next }); },
+        })
+        : h('span', { class: `lvl lvl-${BOT_LEVELS[i][0]}`, text: label }));
+    }
     if (!p.on) tags.push(h('span', { class: 'tag', text: 'away' }));
     if (isHost && p.id !== S.myId) tags.push(h('button', { class: 'kick', type: 'button', 'data-kick': p.id, title: `Remove ${p.name}`, 'aria-label': `Remove ${p.name}`, text: '✕' }));
     return h('li', { class: `${p.id === S.myId ? 'me' : ''} ${p.on ? '' : 'off'}` },
-      avatar(p, 36), h('span', { class: 'nm', text: p.name }), h('span', { class: 'tags' }, tags));
+      avatar(p, 36), h('span', { class: 'nm', text: (p.bot ? '🤖 ' : '') + p.name }), h('span', { class: 'tags' }, tags));
   }));
 
   // Edit my look

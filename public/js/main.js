@@ -1,5 +1,5 @@
 // Entry point: home screen, connecting to rooms, the game loop and effects.
-import { TICK_MS } from '../shared/physics.js';
+import { TICK_MS, DASH_CD } from '../shared/physics.js';
 import { COLORS, HATS } from '../shared/meta.js';
 import { Net } from './net.js';
 import { ClientGame } from './game.js';
@@ -477,6 +477,7 @@ function frame(now) {
     const view = game.sample(now, acc / TICK_MS, dt);
     if (view) renderer.draw(view, dt, S.players);
     ui.frame(now, view);
+    if (isTouch) updateDashButton(view);
   } else if (!$('home').classList.contains('hidden')) {
     drawHome(now / 1000, dt);
   }
@@ -506,3 +507,29 @@ document.addEventListener('pointerdown', () => audio.unlock());
 document.addEventListener('keydown', () => audio.unlock());
 document.addEventListener('visibilitychange', () => { if (!document.hidden) audio.unlock(); });
 requestAnimationFrame(frame);
+
+// ------------------------------------------------------------------ mobile dash button cooldown
+
+const dashBtn = $('dashBtn');
+const dashLabel = $('dashLabel');
+let lastCd = -1;
+let lastLabel = '';
+function updateDashButton(view) {
+  const me = game.me;
+  const active = !!(me && view?.self && !game.locked);
+  const holding = active && game.mods.noDash; // dodgeball: dash throws instead
+  const cd = active && !holding ? Math.min(1, Math.max(0, me.dashCd / DASH_CD)) : 0;
+  const q = Math.round(cd * 100) / 100;
+  if (q !== lastCd) {
+    if (lastCd > 0 && q === 0) {
+      dashBtn.classList.remove('ready');
+      void dashBtn.offsetWidth; // restart the pop animation
+      dashBtn.classList.add('ready');
+    }
+    lastCd = q;
+    dashBtn.style.setProperty('--cd', q);
+    dashBtn.classList.toggle('cooling', q > 0);
+  }
+  const label = holding ? 'THROW' : 'DASH';
+  if (label !== lastLabel) { lastLabel = label; dashLabel.textContent = label; }
+}

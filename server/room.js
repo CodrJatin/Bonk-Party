@@ -5,7 +5,7 @@ import { TICK_RATE, DT, PLAYER_R, BONK_POWER, stepMove, confineBox } from '../pu
 import { COLORS, HATS, EMOTES, GAME_ORDER, MAX_PLAYERS, ROUND_OPTIONS } from '../public/shared/meta.js';
 import { MODES } from './games/index.js';
 import { shuffle } from './games/util.js';
-import { botBrain, botName } from './bots.js';
+import { botBrain, botName, BOT_LEVELS } from './bots.js';
 import { computeAwards } from './awards.js';
 import { recordMatch } from './stats.js';
 
@@ -285,6 +285,11 @@ export class Room {
       case 'bot':
         if (this.isHost(p) && !this.match) this.addBot();
         break;
+      case 'botlevel': {
+        const q = this.players.get(m.id | 0);
+        if (this.isHost(p) && q?.bot && BOT_LEVELS.includes(m.level)) { q.level = m.level; this.metaDirty = true; }
+        break;
+      }
       case 'kick': {
         const q = this.players.get(m.id | 0);
         if (this.isHost(p) && q && q !== p) this.removePlayer(q, 'kick');
@@ -323,6 +328,7 @@ export class Room {
       { name: botName(used), color: -1, hat: 1 + Math.floor(Math.random() * (HATS.length - 1)) },
       null, true,
     );
+    p.level = 'medium';
     this.feed('%0 joined 🤖', [p]);
   }
 
@@ -657,7 +663,7 @@ export class Room {
       settings: this.settings,
       players: [...this.players.values()].map((p) => ({
         id: p.id, name: p.name, color: p.color, hat: p.hat,
-        bot: p.bot ? 1 : 0, on: p.connected ? 1 : 0, spec: p.spec ? 1 : 0, score: p.score,
+        bot: p.bot ? 1 : 0, lvl: p.bot ? p.level : undefined, on: p.connected ? 1 : 0, spec: p.spec ? 1 : 0, score: p.score,
       })),
       round: this.match
         ? { i: this.match.i + 1, n: this.match.seq.length, game: this.mode.id, dbl: this.isFinalRound() ? 1 : 0 }
