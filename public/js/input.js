@@ -50,6 +50,8 @@ export class Input {
       if (e.clientX < innerWidth * 0.5) {
         if (this.stick.id !== null) return;
         this.stick = { x: 0, y: 0, id: e.pointerId, ox: e.clientX, oy: e.clientY };
+        // Keep receiving this finger's move/up even if it slides over the HUD or off-screen.
+        try { layer.setPointerCapture(e.pointerId); } catch { /* ignore */ }
         base.style.left = `${e.clientX}px`;
         base.style.top = `${e.clientY}px`;
         base.classList.add('active');
@@ -78,6 +80,9 @@ export class Input {
     };
     layer.addEventListener('pointerup', end);
     layer.addEventListener('pointercancel', end);
+    layer.addEventListener('lostpointercapture', end);
+    // Safety net: switching away from the tab always releases the stick.
+    addEventListener('blur', () => end({ pointerId: this.stick.id }));
     dashBtn.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       e.stopPropagation();

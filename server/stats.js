@@ -2,6 +2,7 @@
 // Uses Supabase when SUPABASE_URL + SUPABASE_SERVICE_KEY are set (persists forever),
 // otherwise a local JSON file (fine for local play; resets on Render redeploys).
 import fs from 'node:fs/promises';
+import fsSync from 'node:fs';
 import path from 'node:path';
 
 const SB_URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
@@ -35,6 +36,7 @@ async function loadLocal() {
 function saveLocal() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
+    saveTimer = null;
     try {
       await fs.mkdir(path.dirname(FILE), { recursive: true });
       await fs.writeFile(FILE, JSON.stringify(local, null, 1));
@@ -42,6 +44,19 @@ function saveLocal() {
       console.warn('[stats] could not save:', e.message);
     }
   }, 500);
+}
+
+/** Write any pending local save right now (used on shutdown). */
+export function flushStats() {
+  if (!saveTimer || !local) return;
+  clearTimeout(saveTimer);
+  saveTimer = null;
+  try {
+    fsSync.mkdirSync(path.dirname(FILE), { recursive: true });
+    fsSync.writeFileSync(FILE, JSON.stringify(local, null, 1));
+  } catch (e) {
+    console.warn('[stats] could not save on exit:', e.message);
+  }
 }
 
 const keyOf = (name) => name.trim().toLowerCase();

@@ -429,7 +429,8 @@ function showFinal() {
   const mePlace = st.find((s) => s.id === S.myId)?.place;
   const sub = mePlace === 1 ? 'You are the BONK CHAMPION 👑' : mePlace ? `You finished #${mePlace}. Rematch?` : 'GG everyone!';
 
-  const pod = (s, cls) => (s ? h('div', { class: `pod ${cls}` },
+  // Pedestal height follows the actual place, so tied winners both stand on gold.
+  const pod = (s, cls) => (s ? h('div', { class: `pod p${Math.min(3, s.place)}` },
     avatar(s, 104),
     h('div', { class: 'pn', text: s.name }),
     h('div', { class: 'ps', text: `${s.score} pts` }),

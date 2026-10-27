@@ -48,6 +48,7 @@ export default {
       s.bombs.delete(id);
       const cand = alive.filter((p) => !s.bombs.has(p.id));
       if (cand.length) s.bombs.set(pick(cand).id, bomb);
+      else if (s.bombs.size === 0) s.next = ctx.time + 2;
     }
 
     if (s.bombs.size === 0 && alive.length > 1 && ctx.time >= s.next) {

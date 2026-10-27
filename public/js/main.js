@@ -159,11 +159,13 @@ async function enterRoom(kind, code) {
   net.send(kind === 'create'
     ? { t: 'create', profile: S.profile }
     : { t: 'join', code, profile: S.profile, token: getToken(code) });
-  busy = false;
+  // Stay busy until the server answers ('joined' / 'error'), so double clicks can't race.
+  setTimeout(() => { busy = false; }, 10000);
 }
 
 net.on('joined', (m) => {
   const rejoin = S.inRoom && S.code === m.code;
+  busy = false;
   S.myId = m.id;
   S.code = m.code;
   S.inRoom = true;
@@ -182,6 +184,7 @@ net.on('joined', (m) => {
 });
 
 net.on('error', (m) => {
+  busy = false;
   if (S.inRoom && !S.reconnecting) { ui.toast(m.msg); return; }
   if (S.reconnecting) { leave(m.msg); return; }
   ui.homeMsg(m.msg);
@@ -210,19 +213,23 @@ net.on('toast', (m) => ui.toast(m.msg));
 net.on('kicked', () => { leave('The host removed you from the room.'); });
 net.on('close', () => { if (S.inRoom && !S.leaving) reconnect(); });
 
+// Each call starts a fresh retry run and cancels any older one, so a socket that
+// drops again before 'joined' arrives just kicks off another run (no dead end).
+let reconnectRun = 0;
 async function reconnect() {
-  if (S.reconnecting) return;
+  const run = ++reconnectRun;
   S.reconnecting = true;
-  for (let i = 0; i < 25 && S.inRoom && S.reconnecting; i++) {
+  for (let i = 0; i < 25; i++) {
     await new Promise((r) => setTimeout(r, Math.min(4000, 800 + i * 400)));
-    if (!S.inRoom) return;
+    if (run !== reconnectRun || !S.inRoom || !S.reconnecting) return;
     try {
       await net.connect(8000);
+      if (run !== reconnectRun) return;
       net.send({ t: 'join', code: S.code, profile: S.profile, token: getToken(S.code) });
-      return; // 'joined' (or 'error') will follow
+      return; // 'joined' (or 'error') will follow; a new close starts a new run
     } catch { /* keep trying */ }
   }
-  if (S.inRoom) leave('Lost connection to the server.');
+  if (run === reconnectRun && S.inRoom) leave('Lost connection to the server.');
 }
 
 function leave(msg) {
@@ -494,6 +501,8 @@ if (invited && /^[A-Za-z]{4}$/.test(invited)) {
 }
 const touchLayer = $('touch');
 input.bindTouch(touchLayer, $('stickBase'), $('stickKnob'), $('dashBtn'));
-document.addEventListener('pointerdown', () => audio.unlock(), { once: true });
-document.addEventListener('keydown', () => audio.unlock(), { once: true });
+// Phones suspend audio when you switch apps; resume it on the next tap/key.
+document.addEventListener('pointerdown', () => audio.unlock());
+document.addEventListener('keydown', () => audio.unlock());
+document.addEventListener('visibilitychange', () => { if (!document.hidden) audio.unlock(); });
 requestAnimationFrame(frame);

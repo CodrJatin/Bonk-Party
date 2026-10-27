@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { Room } from './room.js';
 import { TICK_MS } from '../public/shared/physics.js';
-import { getLeaderboard, storageMode } from './stats.js';
+import { getLeaderboard, storageMode, flushStats } from './stats.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC = path.resolve(__dirname, '../public');
@@ -69,12 +69,18 @@ function serveStatic(req, res, pathname) {
       etag,
     });
     if (req.method === 'HEAD') { res.end(); return; }
-    fs.createReadStream(file).pipe(res);
+    const stream = fs.createReadStream(file);
+    stream.on('error', () => res.destroy()); // never let a read error crash the server
+    stream.pipe(res);
   });
 }
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    res.writeHead(405).end();
+    return;
+  }
   if (url.pathname === '/health') {
     res.writeHead(200, { 'content-type': 'text/plain' }).end('ok');
     return;
@@ -86,10 +92,6 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname.startsWith('/api/room/')) {
     const r = rooms.get(url.pathname.slice(10).toUpperCase());
     json(res, r ? { exists: true, players: r.players.size, phase: r.phase } : { exists: false });
-    return;
-  }
-  if (req.method !== 'GET' && req.method !== 'HEAD') {
-    res.writeHead(405).end();
     return;
   }
   serveStatic(req, res, url.pathname);
@@ -160,6 +162,7 @@ function loop() {
         if (room.errors > 50) room.dead = true;
       }
       if (room.dead) {
+        room.close();
         rooms.delete(code);
         console.log(`[room ${code}] closed (${rooms.size} rooms)`);
       }
@@ -171,6 +174,14 @@ function loop() {
   setTimeout(loop, Math.max(1, next - performance.now()));
 }
 loop();
+
+// Render sends SIGTERM before sleeping/redeploying: save the Hall of Fame first.
+for (const sig of ['SIGTERM', 'SIGINT']) {
+  process.on(sig, () => {
+    flushStats();
+    process.exit(0);
+  });
+}
 
 server.listen(PORT, () => {
   console.log(`💥 Bonk Party running on http://localhost:${PORT}  (hall of fame: ${storageMode()})`);

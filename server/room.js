@@ -1,7 +1,7 @@
 // A room = one group of friends. Handles joining, host controls, the round
 // cycle (intro -> playing -> results), scoring, and the tick simulation.
 import crypto from 'node:crypto';
-import { TICK_RATE, DT, PLAYER_R, BONK_POWER, stepMove } from '../public/shared/physics.js';
+import { TICK_RATE, DT, PLAYER_R, BONK_POWER, stepMove, confineBox } from '../public/shared/physics.js';
 import { COLORS, HATS, EMOTES, GAME_ORDER, MAX_PLAYERS, ROUND_OPTIONS } from '../public/shared/meta.js';
 import { MODES } from './games/index.js';
 import { shuffle } from './games/util.js';
@@ -410,7 +410,8 @@ export class Room {
         return { id: p.id, name: p.name, color: p.color, hat: p.hat, bot: p.bot ? 1 : 0, score: p.score, place };
       });
       this.lastMatch = { id: ++this.matchNo, standings, awards: computeAwards(m.stats, this.players) };
-      const humans = standings.filter((s) => !s.bot);
+      // Only humans still here at the end count toward the Hall of Fame.
+      const humans = standings.filter((s) => !s.bot && this.players.get(s.id)?.connected);
       if (humans.length >= 2) {
         recordMatch(humans.map((s) => ({
           name: s.name, win: s.place === 1, points: s.score, rounds: m.stats.get(s.id)?.roundWins || 0,
@@ -505,6 +506,7 @@ export class Room {
         if (stepMove(p, p.inp, DT, this.modsFor(p))) this.stat(p, 'dashes');
       }
       this.collide(list);
+      this.reconfine(list);
       mode.update(ctx);
       if (this.phase === 'playing' && mode.isOver?.(ctx)) this.endRound();
     }
@@ -551,6 +553,15 @@ export class Room {
     }
   }
 
+  /** Collisions can shove a blob past a wall; push it back inside. */
+  reconfine(list) {
+    for (const p of list) {
+      if (p.falling) continue;
+      const box = this.modsFor(p).box;
+      if (box) confineBox(p, box[0], box[1]);
+    }
+  }
+
   bonk(att, vic, nx, ny) {
     const pow = BONK_POWER * (this.mode.bonkMul || 1);
     vic.vx = nx * pow + vic.vx * 0.15;
@@ -576,6 +587,17 @@ export class Room {
   }
 
   // ------------------------------------------------------------------ network
+
+  /** Room is being thrown away: tell everyone and drop their sockets. */
+  close() {
+    for (const p of this.players.values()) {
+      if (!p.ws) continue;
+      this.send(p, { t: 'error', msg: 'This room closed. Please create a new one.' });
+      try { p.ws.close(1011, 'room closed'); } catch { /* ignore */ }
+      p.ws = null;
+      p.removed = true;
+    }
+  }
 
   send(p, msg) {
     if (p.ws && p.ws.readyState === 1) p.ws.send(JSON.stringify(msg));
