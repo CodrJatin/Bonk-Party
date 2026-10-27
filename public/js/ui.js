@@ -239,16 +239,17 @@ function renderHudCenter(view) {
     }
     return;
   }
+  const isIntro = m.phase === 'intro';
   const g = GAMES[m.round.game];
   const t = m.phase === 'playing' && view?.tl != null ? view.tl : null;
   const key = `${m.round.i}|${m.phase}|${t}`;
   if (el.dataset.k === key) return;
   el.dataset.k = key;
   const timer = t == null
-    ? h('span', { class: 'timer', text: m.phase === 'intro' ? 'READY' : 'DONE' })
+    ? h('span', { class: 'timer', text: isIntro ? 'READY' : 'DONE' })
     : h('span', { class: `timer ${t <= 5 ? 'low' : ''}`, text: `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}` });
   el.replaceChildren(h('div', { class: 'round-pill' },
-    h('span', { class: 'rp-game', text: `${g.icon} ${g.name}` }),
+    h('span', { class: 'rp-game', text: isIntro ? '🎲 Selecting Round' : `${g.icon} ${g.name}` }),
     h('span', { class: 'rp-round', text: `Round ${m.round.i}/${m.round.n}${m.round.dbl ? ' · x2' : ''}` }),
     timer,
   ));
@@ -299,8 +300,12 @@ export function frame(now, view) {
       const n = left <= 3000 ? Math.max(1, Math.ceil(left / 1000)) : null;
       if (n !== lastCount) {
         lastCount = n;
-        el.replaceChildren(n ? h('span', { text: n }) : '');
-        if (n) sfx.tick();
+        if (n) {
+          el.replaceChildren(h('span', { class: `fg-count-num c-${n}`, text: n }));
+          sfx.tick();
+        } else {
+          el.replaceChildren(h('span', { class: 'fg-count-ready', text: 'GET READY!' }));
+        }
       }
     }
   }
@@ -352,7 +357,14 @@ export function onMeta(prev) {
   act.layout();
 }
 
+let rouletteTimers = [];
+function clearRoulette() {
+  for (const t of rouletteTimers) clearTimeout(t);
+  rouletteTimers = [];
+}
+
 function hideOverlay() {
+  clearRoulette();
   const o = $('overlay');
   o.classList.add('hidden');
   o.replaceChildren();
@@ -365,19 +377,159 @@ function showOverlay(card, clear = false) {
 }
 
 function showIntro() {
-  const r = S.meta.round;
+  clearRoulette();
+  const m = S.meta;
+  const r = m.round;
   const g = GAMES[r.game];
-  lastCount = null;
-  showOverlay(h('div', { class: 'card intro-card pop' },
-    h('div', { class: 'round-tag', text: `ROUND ${r.i} OF ${r.n}` }),
-    h('div', { class: 'intro-icon', text: g.icon }),
-    h('h2', { text: g.name }),
-    h('p', { class: 'tagline', text: g.tag }),
-    h('p', { class: 'how', text: g.how }),
-    r.dbl ? h('div', { class: 'dbl', text: '🔥 FINAL ROUND · DOUBLE POINTS 🔥' }) : null,
-    h('div', { class: 'countdown', id: 'countdown' }),
-    h('div', { class: 'keys', text: controlsText }),
-  ));
+  lastCount = -1;
+
+  const now = performance.now();
+  const left = S.phaseEndAt - now;
+  const activeGames = (m.settings?.games?.length ? m.settings.games : GAME_ORDER);
+
+
+  // If connected late (less than 3.8s left), show the reveal card directly
+  const skipRoulette = left <= 3800;
+
+  // Build the Fall Guys Reveal Card (Stage 2)
+  const revealCard = h('div', { class: `fg-reveal-card card ${skipRoulette ? 'pop' : 'hidden'}` },
+    h('div', { class: 'fg-sunburst', 'aria-hidden': 'true' }),
+    h('div', { class: 'fg-top-row' },
+      h('div', { class: `fg-round-badge ${r.dbl ? 'dbl' : ''}`, text: r.dbl ? '🔥 FINAL ROUND · DOUBLE POINTS 🔥' : `ROUND ${r.i} OF ${r.n}` }),
+      h('div', { class: 'fg-category-pill', style: `background:${g.color || 'var(--pink)'}`, text: `🛡️ ${g.category || 'MINI-GAME'}` }),
+    ),
+    h('div', { class: 'fg-hero-icon-wrap' },
+      h('div', { class: 'fg-icon-halo', style: `background: radial-gradient(circle, ${g.color || '#ff416c'}55 0%, transparent 70%)` }),
+      h('div', { class: 'fg-hero-icon', text: g.icon }),
+    ),
+    h('h2', { class: 'fg-title', text: g.name }),
+    h('div', { class: 'fg-objective-pill' },
+      h('span', { class: 'fg-obj-tag', text: g.qualify || 'QUALIFY' }),
+      h('span', { class: 'fg-obj-text', text: g.tag }),
+    ),
+    h('p', { class: 'fg-how', text: g.how }),
+    h('div', { class: 'fg-countdown-wrap' },
+      h('div', { class: 'countdown', id: 'countdown' },
+        h('span', { class: 'fg-count-ready', text: 'GET READY!' }),
+      ),
+    ),
+    h('div', { class: 'fg-keys-pill' },
+      h('span', { class: 'fg-keys-icon' }, isTouch ? '📱' : '⌨️'),
+      h('span', { text: controlsText }),
+    ),
+  );
+
+  if (skipRoulette) {
+    showOverlay(h('div', { class: 'fg-intro-wrap' }, revealCard));
+    return;
+  }
+
+  // --- STAGE 1: Build Fall Guys Roulette Reel ---
+  // Keep pool to ~16-18 cards so the cards roll at a readable, dramatic pace
+  const pool = [];
+  while (pool.length < 18) {
+    for (const id of activeGames) pool.push(id);
+  }
+  let targetIndex = -1;
+  for (let i = 10; i < pool.length; i++) {
+    if (pool[i] === r.game) {
+      targetIndex = i;
+      break;
+    }
+  }
+  if (targetIndex === -1) {
+    for (const id of activeGames) pool.push(id);
+    targetIndex = pool.lastIndexOf(r.game);
+  }
+  // Add trailing cards so the strip continues past the target
+  for (let i = 0; i < 4; i++) pool.push(activeGames[i % activeGames.length]);
+
+  const reelItems = pool.map((id, idx) => {
+    const gm = GAMES[id];
+    return h('div', {
+      class: `fg-reel-card ${idx === targetIndex ? 'is-target' : ''}`,
+      style: `background: ${gm.grad || 'linear-gradient(135deg, #444, #222)'}`,
+    },
+      h('span', { class: 'fg-rc-icon', text: gm.icon }),
+      h('span', { class: 'fg-rc-name', text: gm.name }),
+      h('span', { class: 'fg-rc-cat', text: gm.category || 'GAME' }),
+    );
+  });
+
+  const track = h('div', { class: 'fg-reel-track' }, ...reelItems);
+  const viewport = h('div', { class: 'fg-reel-viewport' },
+    h('div', { class: 'fg-reticle' },
+      h('span', { class: 'fg-arrow top', text: '▼' }),
+      h('span', { class: 'fg-arrow btm', text: '▲' }),
+      h('div', { class: 'fg-reticle-box' }),
+    ),
+    h('div', { class: 'fg-fade-edge left' }),
+    h('div', { class: 'fg-fade-edge right' }),
+    track,
+  );
+
+  const rouletteTitle = h('h2', { class: 'fg-roulette-title' },
+    h('span', { class: 'fg-spinner-icon' }, '🎲'),
+    h('span', { id: 'rouletteTitleText', text: 'SELECTING NEXT ROUND...' }),
+  );
+
+  const rouletteWrap = h('div', { class: 'fg-roulette pop' },
+    h('div', { class: 'fg-round-badge', text: r.dbl ? '🔥 FINAL ROUND · DOUBLE POINTS 🔥' : `ROUND ${r.i} OF ${r.n}` }),
+    rouletteTitle,
+    viewport,
+    h('div', { class: 'fg-roulette-hint', text: 'Spinning the round wheel...' }),
+  );
+
+  const container = h('div', { class: 'fg-intro-wrap' }, rouletteWrap, revealCard);
+  showOverlay(container);
+
+  // Trigger spin animation on next animation frames
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const targetEl = reelItems[targetIndex];
+      if (!targetEl) return;
+      const vpCenter = viewport.clientWidth / 2;
+      const targetCenter = targetEl.offsetLeft + targetEl.offsetWidth / 2;
+      const finalX = Math.round(vpCenter - targetCenter);
+
+      const spinDuration = 3200;
+      track.style.transition = `transform ${spinDuration}ms cubic-bezier(0.16, 0.88, 0.22, 1)`;
+      track.style.transform = `translate3d(${finalX}px, 0, 0)`;
+
+      // Play decelerating tick sound effects over the 3.2s duration
+      let elapsed = 0;
+      let delay = 75;
+      while (elapsed + delay < spinDuration) {
+        elapsed += delay;
+        const curT = elapsed;
+        delay = Math.round(delay * 1.155);
+        rouletteTimers.push(setTimeout(() => {
+          const pitch = 560 + (curT / spinDuration) * 300;
+          sfx.rouletteTick(pitch);
+        }, curT));
+      }
+
+      // Lock-in moment (at 3.2s)
+      rouletteTimers.push(setTimeout(() => {
+        sfx.rouletteLock();
+        sfx.fanfare();
+        if (targetEl) targetEl.classList.add('fg-locked');
+        viewport.classList.add('fg-locked');
+        const tt = $('rouletteTitleText');
+        if (tt) tt.textContent = `${g.name.toUpperCase()} CHOSEN!`;
+      }, spinDuration));
+
+      // Transition to full Fall Guys reveal card (at 3.7s)
+      rouletteTimers.push(setTimeout(() => {
+        rouletteWrap.classList.add('fg-fade-out');
+        rouletteTimers.push(setTimeout(() => {
+          rouletteWrap.classList.add('hidden');
+          revealCard.classList.remove('hidden');
+          revealCard.classList.add('pop');
+        }, 280));
+      }, spinDuration + 500));
+    });
+  });
 }
 
 function showResults() {
@@ -418,7 +570,7 @@ function showResults() {
   }));
 
   const next = res.next
-    ? h('span', {}, 'Next up: ', h('b', { text: `${GAMES[res.next].icon} ${GAMES[res.next].name}` }), ' in ', h('b', { id: 'nextIn', text: '' }), 's')
+    ? h('span', {}, '🎲 Next round in ', h('b', { id: 'nextIn', text: '' }), 's')
     : h('span', {}, '🏆 Final results in ', h('b', { id: 'nextIn', text: '' }), 's');
 
   showOverlay(h('div', { class: 'card results-card pop' },
@@ -516,6 +668,7 @@ export function splash(text, cls = '') {
 }
 
 export function resetRoomUI() {
+  clearRoulette();
   overlayKey = '';
   lastCount = null;
   clearTimeout(resultsTimer);

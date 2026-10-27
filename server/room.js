@@ -9,7 +9,7 @@ import { botBrain, botName, BOT_LEVELS } from './bots.js';
 import { computeAwards } from './awards.js';
 import { recordMatch } from './stats.js';
 
-const INTRO_TICKS = 5 * TICK_RATE;
+const INTRO_TICKS = 7 * TICK_RATE;
 const RESULTS_TICKS = 9 * TICK_RATE;
 const LOBBY_GRACE = 45 * TICK_RATE;      // a disconnected player keeps their seat this long in the lobby
 const MATCH_GRACE = 120 * TICK_RATE;     // ...and this long during a match (score is kept)

@@ -86,4 +86,12 @@ export const sfx = {
   win() { [523, 659, 784, 1046, 784, 1046].forEach((f, i) => tone(f, 0.22, 'triangle', 0.18, null, i * 0.12)); },
   join() { tone(660, 0.08, 'sine', 0.15); tone(990, 0.1, 'sine', 0.15, null, 0.07); },
   click() { tone(800, 0.04, 'square', 0.06); },
+  rouletteTick(pitch = 700) { tone(pitch, 0.04, 'triangle', 0.16); noise(0.02, 0.12, 2200); },
+  rouletteLock() { tone(240, 0.22, 'sine', 0.45, 90); tone(880, 0.2, 'triangle', 0.25, 1320); noise(0.12, 0.35, 1600); },
+  fanfare() {
+    [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
+      tone(f, 0.35, 'triangle', 0.18, null, i * 0.05);
+      tone(f * 1.5, 0.25, 'sine', 0.08, null, i * 0.05);
+    });
+  },
 };
