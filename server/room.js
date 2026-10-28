@@ -63,6 +63,8 @@ class RoundCtx {
   emit(e) { this.room.events.push(e); }
   feed(m, ps = []) { this.emit({ k: 'feed', m, n: ps.map((p) => [p.name, COLORS[p.color]]) }); }
   stat(p, key, n = 1) { this.room.stat(p, key, n); }
+  /** Add time to the round clock (overtime). */
+  extend(sec) { if (this.room.phase === 'playing') this.room.phaseEnd += Math.round(sec * TICK_RATE); }
 
   eliminate(p) {
     if (!p.alive) return;
@@ -640,6 +642,7 @@ export class Room {
         const m = this.modsFor(p);
         if (m.speed && m.speed !== 1) me.sp = m.speed;
         if (m.grip && m.grip !== 1) me.gr = m.grip;
+        if (m.cd && m.cd !== 1) me.cd = m.cd;
         if (m.noDash) me.nd = 1;
         if (m.box) me.bx = m.box;
       }

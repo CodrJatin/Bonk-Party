@@ -47,7 +47,7 @@ export class ClientGame {
 
   reconcile(m) {
     this.locked = !!m.lk;
-    this.mods = { speed: m.sp || 1, grip: m.gr || 1, noDash: !!m.nd, box: m.bx || null };
+    this.mods = { speed: m.sp || 1, grip: m.gr || 1, cd: m.cd || 1, noDash: !!m.nd, box: m.bx || null };
     const st = { x: m.x, y: m.y, vx: m.vx, vy: m.vy, fx: m.fx, fy: m.fy, dashT: m.dt, dashCd: m.dc, stun: m.st };
     while (this.pending.length && this.pending[0].s <= m.s) this.pending.shift();
     if (this.locked) this.pending.length = 0;

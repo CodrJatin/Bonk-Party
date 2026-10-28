@@ -320,6 +320,7 @@ export function frame(now, view) {
   else if (view && m.round && (m.phase === 'playing' || m.phase === 'intro')) {
     if (!view.self) b = "👀 You joined mid-round. You're in from the next one!";
     else if (view.self.bits & 4) b = "👻 You're out! Float around and haunt your friends";
+    else b = CMODES[view.mode]?.banner?.(view, m.phase) || '';
   }
   banner(b);
 
@@ -370,9 +371,9 @@ function hideOverlay() {
   o.replaceChildren();
 }
 
-function showOverlay(card, clear = false) {
+function showOverlay(card, clear = false, extra = '') {
   const o = $('overlay');
-  o.className = `overlay${clear ? ' clear' : ''}`;
+  o.className = `overlay${clear ? ' clear' : ''}${extra ? ` ${extra}` : ''}`;
   o.replaceChildren(card);
 }
 
@@ -420,7 +421,7 @@ function showIntro() {
   );
 
   if (skipRoulette) {
-    showOverlay(h('div', { class: 'fg-intro-wrap' }, revealCard));
+    showOverlay(h('div', { class: 'fg-intro-wrap' }, revealCard), false, 'intro');
     return;
   }
 
@@ -481,7 +482,7 @@ function showIntro() {
   );
 
   const container = h('div', { class: 'fg-intro-wrap' }, rouletteWrap, revealCard);
-  showOverlay(container);
+  showOverlay(container, false, 'intro');
 
   // Trigger spin animation on next animation frames
   requestAnimationFrame(() => {

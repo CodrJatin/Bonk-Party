@@ -10,6 +10,10 @@ Chaotic party mini-games for **2–10 friends**, right in the browser. Everyone 
 | 🎨 **Paint Panic** | Roll around painting the floor your color. Most floor wins. |
 | 🏐 **Dodgeball Mayhem** | Grab a ball, dash to throw it. 3 hits and you're out. |
 | 👑 **Crown Thief** | Hold the crown as long as you can while everyone hunts you. |
+| 🧱 **Crumble Floor** | Tiles wear out under you and drop away. Keep moving, shove rivals into the holes. |
+| 🧟 **Zombie Tag** | Zombies infect with a touch. Last human standing wins; dash into a zombie to stun it. |
+| 🎵 **Musical Pads** | When the music stops, grab a pad. There's always one too few. |
+| ⚽ **Team Blob Ball** | Red vs Blue: push the giant ball into the other goal. Draws go to golden goal. |
 
 **Controls:** `WASD` / arrows to move, `Space` to dash, `1`–`4` for emotes. On phones: left thumb moves, tap the right side to dash.
 

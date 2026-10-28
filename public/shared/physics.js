@@ -20,7 +20,7 @@ export const BONK_POWER = 820;
  * Advance one blob by one step.
  * p:   {x,y,vx,vy,fx,fy,dashT,dashCd,stun}
  * inp: {x,y,d} – move direction (length <= 1) and a one-shot dash flag
- * m:   {speed, grip, noDash, box:[w,h]|null}
+ * m:   {speed, grip, cd, noDash, box:[w,h]|null}  (cd = dash cooldown multiplier)
  * Returns true if a dash started this step.
  */
 export function stepMove(p, inp, dt, m) {
@@ -43,7 +43,7 @@ export function stepMove(p, inp, dt, m) {
     p.vx = p.fx * DASH_SPEED * speed;
     p.vy = p.fy * DASH_SPEED * speed;
     p.dashT = DASH_TIME;
-    p.dashCd = DASH_CD;
+    p.dashCd = DASH_CD * (m.cd || 1);
     dashed = true;
   }
 

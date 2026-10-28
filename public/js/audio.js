@@ -88,6 +88,20 @@ export const sfx = {
   click() { tone(800, 0.04, 'square', 0.06); },
   rouletteTick(pitch = 700) { tone(pitch, 0.04, 'triangle', 0.16); noise(0.02, 0.12, 2200); },
   rouletteLock() { tone(240, 0.22, 'sine', 0.45, 90); tone(880, 0.2, 'triangle', 0.25, 1320); noise(0.12, 0.35, 1600); },
+  infect() { tone(180, 0.35, 'sawtooth', 0.16, 70); noise(0.2, 0.25, 900, 200); },
+  beat(n) {
+    const MELODY = [523, 659, 784, 659, 587, 698, 880, 698, 523, 659, 784, 1046, 988, 784, 659, 587];
+    const BASS = [131, 131, 147, 147, 131, 131, 98, 98];
+    tone(MELODY[n % MELODY.length], 0.12, 'square', 0.06);
+    if (n % 2 === 0) tone(BASS[(n / 2) % BASS.length], 0.2, 'triangle', 0.14);
+  },
+  stop() { noise(0.35, 0.3, 3000, 200); tone(700, 0.4, 'sawtooth', 0.12, 90); },
+  seat() { tone(440, 0.08, 'triangle', 0.2, 880); },
+  goal() {
+    noise(1.2, 0.25, 1800, 600);
+    [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.3, 'square', 0.1, null, i * 0.08));
+  },
+  shrink() { noise(0.6, 0.35, 300, 60); tone(70, 0.5, 'sine', 0.3, 40); },
   fanfare() {
     [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
       tone(f, 0.35, 'triangle', 0.18, null, i * 0.05);

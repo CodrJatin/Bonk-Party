@@ -65,7 +65,7 @@ export class Renderer {
 
     // Fit the arena on screen.
     const a = v.arena;
-    const bw = a.type === 'circle' ? a.r * 2 + 120 : a.w + 90;
+    const bw = (a.type === 'circle' ? a.r * 2 + 120 : a.w + 90) + (mode.pad || 0) * 2;
     const bh = a.type === 'circle' ? a.r * 2 + 150 : a.h + 130;
     const ins = this.insets;
     const aw = Math.max(100, W - ins.l - ins.r), ah = Math.max(100, H - ins.t - ins.b);
@@ -92,7 +92,7 @@ export class Renderer {
 
     const byId = new Map(v.players.map((p) => [p.id, p]));
     const R = {
-      t: this.t, s, fx: this.fx, myId: v.myId, me: v.me,
+      t: this.t, s, fx: this.fx, myId: v.myId, me: v.me, mode,
       player: (id) => byId.get(id), colorOf, info,
     };
 
@@ -117,7 +117,8 @@ export class Renderer {
 
   drawPlayer(c, p, v, R, falling) {
     const inf = R.info(p.id);
-    const color = R.colorOf(p.id);
+    const tint = R.mode.tint?.(p, R);
+    const color = tint?.color || R.colorOf(p.id);
     const sp = Math.hypot(p.vx, p.vy);
     let look = this.looks.get(p.id) || { x: 0, y: 0.6 };
     if (p.id === v.myId && v.me && (p.predicted || sp < 20)) look = { x: v.me.fx, y: v.me.fy };
@@ -144,7 +145,7 @@ export class Renderer {
     drawBlob(c, p.x, y, PLAYER_R, color, {
       t: this.t, seed: p.id * 1.7, vx: p.vx, vy: p.vy, lookX: look.x, lookY: look.y,
       hat: inf?.hat || 0, stun: !!(p.bits & 2), dash: !!(p.bits & 1), alpha, scale,
-      shadow: !ghost && !falling, sad: ghost,
+      shadow: !ghost && !falling, sad: ghost || !!tint?.sad,
     });
   }
 

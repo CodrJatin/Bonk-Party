@@ -77,6 +77,38 @@ export const GAMES = {
     color: '#ffd700',
     grad: 'linear-gradient(135deg, #f9d423 0%, #ff4e50 100%)',
   },
+  crumble: {
+    name: 'Crumble Floor', icon: '🧱', kind: 'elim',
+    category: 'SURVIVAL', qualify: "DON'T FALL THROUGH",
+    tag: 'Keep moving or drop through the floor',
+    how: 'Tiles crack the moment you step on them. Holes refill, but later the edges fall away for good. DASH rivals into the gaps!',
+    color: '#e07a5f',
+    grad: 'linear-gradient(135deg, #e07a5f 0%, #81345a 100%)',
+  },
+  zombie: {
+    name: 'Zombie Tag', icon: '🧟', kind: 'elim',
+    category: 'INFECTION', qualify: 'STAY HUMAN',
+    tag: 'Last human standing wins',
+    how: 'Zombies infect you with a touch. Humans: run, or DASH into a zombie to stun it. Zombies: chase! Every infection counts.',
+    color: '#70e000',
+    grad: 'linear-gradient(135deg, #70e000 0%, #007f5f 100%)',
+  },
+  pads: {
+    name: 'Musical Pads', icon: '🎵', kind: 'elim',
+    category: 'SURVIVAL', qualify: 'GRAB A PAD',
+    tag: 'When the music stops, grab a pad',
+    how: "Dance while the music plays. When it stops, there aren't enough pads for everyone. Get on one, or DASH someone off theirs!",
+    color: '#ff70d8',
+    grad: 'linear-gradient(135deg, #ff70d8 0%, #7209b7 100%)',
+  },
+  ball: {
+    name: 'Team Blob Ball', icon: '⚽', kind: 'team',
+    category: 'TEAM GAME', qualify: 'RED VS BLUE',
+    tag: 'Push the giant ball into the other goal',
+    how: 'Red vs Blue! Shove the ball into the other team’s goal, DASH for a power kick. A draw goes to golden goal.',
+    color: '#3a86ff',
+    grad: 'linear-gradient(135deg, #ff4d6d 0%, #3a86ff 100%)',
+  },
 };
 
-export const GAME_ORDER = ['sumo', 'potato', 'coins', 'turf', 'dodge', 'crown'];
+export const GAME_ORDER = ['sumo', 'potato', 'coins', 'turf', 'dodge', 'crown', 'crumble', 'zombie', 'pads', 'ball'];

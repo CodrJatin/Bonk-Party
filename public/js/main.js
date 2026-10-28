@@ -357,6 +357,42 @@ game.onEvent = (e) => {
       fx.text(e.x, e.y - 46, 'STOLEN!', '#ffd23f', 26);
       sfx.steal();
       break;
+    case 'infect':
+      fx.burst(e.x, e.y, '#9ef01a', 22, 320, 6, 0.6);
+      fx.ring(e.x, e.y, '#70e000', 70, 0.4, 8);
+      fx.text(e.x, e.y - 46, e.v === me ? "YOU'RE A ZOMBIE!" : 'BRAINS!', '#9ef01a', e.v === me ? 22 : 26);
+      sfx.infect();
+      if (e.v === me) fx.addShake(10);
+      break;
+    case 'beat':
+      sfx.beat(e.n);
+      break;
+    case 'stop':
+      ui.splash('FREEZE!', 'pink');
+      sfx.stop();
+      fx.addShake(6);
+      break;
+    case 'seat':
+      fx.ring(e.x, e.y, colorOf(e.id), 60, 0.3, 6);
+      if (e.id === me) sfx.seat();
+      break;
+    case 'goal': {
+      const col = e.t === 0 ? '#ff4d6d' : '#3a86ff';
+      fx.confettiAt(e.x, e.y, [col, '#fff', '#ffd23f'], 50);
+      fx.burst(e.x, e.y, col, 30, 520, 8, 0.7);
+      fx.addShake(14);
+      ui.splash(e.own ? 'OWN GOAL!' : 'GOAL!', e.t === 0 ? 'pink' : 'mint');
+      sfx.goal();
+      break;
+    }
+    case 'golden':
+      ui.splash('GOLDEN GOAL!', '');
+      sfx.crown();
+      break;
+    case 'shrink':
+      sfx.shrink();
+      fx.addShake(5);
+      break;
     case 'emo':
       renderer.emote(e.id, e.e);
       sfx.pop();
@@ -518,7 +554,7 @@ function updateDashButton(view) {
   const me = game.me;
   const active = !!(me && view?.self && !game.locked);
   const holding = active && game.mods.noDash; // dodgeball: dash throws instead
-  const cd = active && !holding ? Math.min(1, Math.max(0, me.dashCd / DASH_CD)) : 0;
+  const cd = active && !holding ? Math.min(1, Math.max(0, me.dashCd / (DASH_CD * (game.mods.cd || 1)))) : 0;
   const q = Math.round(cd * 100) / 100;
   if (q !== lastCd) {
     if (lastCd > 0 && q === 0) {

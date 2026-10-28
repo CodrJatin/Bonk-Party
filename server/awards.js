@@ -10,6 +10,10 @@ const AWARDS = [
   { key: 'crown', icon: '👑', title: 'Royalty', desc: (n) => `wore the crown for ${(n / TICK_RATE).toFixed(1)}s` },
   { key: 'tiles', icon: '🎨', title: 'Picasso', desc: (n) => `painted ${n} tiles` },
   { key: 'steals', icon: '🦝', title: 'Pickpocket', desc: (n) => `knocked loose ${n} goodies` },
+  { key: 'goals', icon: '⚽', title: 'Golden Boot', desc: (n) => `scored ${n} goal${n > 1 ? 's' : ''}` },
+  { key: 'infects', icon: '🧟', title: 'Patient Zero', desc: (n) => `infected ${n} blob${n > 1 ? 's' : ''}` },
+  { key: 'seats', icon: '🪑', title: 'Seat Hog', desc: (n) => `grabbed a pad ${n} times` },
+  { key: 'cracks', icon: '🧱', title: 'Wrecking Ball', desc: (n) => `cracked ${n} tiles` },
   { key: 'elims', icon: '🪦', title: 'Professional Faller', desc: (n) => `got knocked out ${n} times` },
   { key: 'dashes', icon: '💨', title: 'Dash Addict', desc: (n) => `dashed ${n} times` },
 ];
